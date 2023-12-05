@@ -11,7 +11,6 @@ const PieChartCustom = ({
   hiddenLabel: boolean
   middle: number
 }) => {
-  console.log('--> -10', middle - 10, middle)
   return (
     <PieChart
       colors={mangoFusionPaletteDark}
