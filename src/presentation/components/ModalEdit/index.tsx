@@ -1,9 +1,6 @@
 import { Crops, IFarmer } from '@/domain/models/farmer'
-import { ICreateFarmer } from '@/domain/usecases/createFarmer'
+import { IUpdateFarmer } from '@/domain/usecases/updateFarmer'
 import { makeToastAdapter } from '@/main/factories/adapter/make-toastAdapter'
-import { makeCnpjValidator } from '@/main/factories/adapter/make-cnpjValidatorAdapter'
-import { makeCpfValidator } from '@/main/factories/adapter/make-cpfValidatorAdapter'
-
 import {
   Modal,
   ModalContent,
@@ -26,15 +23,22 @@ import {
   TentTree,
   User,
 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 
-interface IModalCreateProps {
+interface IModalEditProps {
   open: boolean
   onClose: () => void
-  createFarmer: ICreateFarmer
+  updateFarmer: IUpdateFarmer
+  editData: IFarmer
 }
 
-const ModalCreate = ({ open, onClose, createFarmer }: IModalCreateProps) => {
+const ModalEdit = ({
+  open,
+  onClose,
+  editData,
+  updateFarmer,
+}: IModalEditProps) => {
   const {
     register,
     setValue,
@@ -46,39 +50,43 @@ const ModalCreate = ({ open, onClose, createFarmer }: IModalCreateProps) => {
   } = useForm<IFarmer>()
 
   const { toast } = makeToastAdapter()
-  const { isValid: cpfIsValid } = makeCnpjValidator()
-  const { isValid: cnpjIsValid } = makeCpfValidator()
+
+  const [crops, setCrops] = useState<Crops[]>()
+
+  const changeCrops = (data: Crops[]) => {
+    setValue('plantedCrops', data)
+    setCrops(data)
+  }
+
+  useEffect(() => {
+    setCrops(editData?.plantedCrops)
+  }, [editData])
 
   const stringToFloat = (value: string | number) =>
     typeof value === 'string' ? parseFloat(value) : value
 
   const submit = () => {
     trigger()
-    if (Object.keys(errors).length !== 0) return
 
-    const doc = getValues('document').replace(/[^\d]+/g, '')
-    const isCpf = cpfIsValid(doc)
-    const isCnpj = cnpjIsValid(doc)
-    if (!isCpf && !isCnpj) {
-      toast('O documento deve ser valido, cpf ou cnpj', 'error')
-      return
-    }
+    if (Object.keys(errors).length !== 0) return
 
     const body = getValues()
     const bodyParse: IFarmer = {
       ...body,
+      id: editData.id,
       totalArea: stringToFloat(body.totalArea),
       agriculturalArea: stringToFloat(body.agriculturalArea),
       vegetationArea: stringToFloat(body.vegetationArea),
     }
 
-    createFarmer
-      .create(bodyParse)
+    updateFarmer
+      .update(bodyParse)
       .then(() => {
         toast('Sucesso', 'success')
         location.reload()
       })
       .catch((err) => toast(err.message, 'error'))
+
     onClose()
     reset()
   }
@@ -109,6 +117,7 @@ const ModalCreate = ({ open, onClose, createFarmer }: IModalCreateProps) => {
                       endContent={<User size={16} />}
                       isRequired
                       errorMessage={errors?.name?.message}
+                      defaultValue={editData?.name}
                       {...register('name', {
                         required: 'O Nome é um campo obrigatório',
                       })}
@@ -116,17 +125,20 @@ const ModalCreate = ({ open, onClose, createFarmer }: IModalCreateProps) => {
                     <Input
                       variant="faded"
                       label="Documento"
+                      defaultValue={editData?.document}
                       description="CPF ou CNPJ"
-                      isRequired
+                      isDisabled
                       errorMessage={errors.document?.message}
                       endContent={<SquareUserRound size={16} />}
+                      disabled={!!editData}
                       {...register('document', {
-                        required: 'O Documento é um campo obrigatório',
+                        value: editData?.document,
                       })}
                     />
                     <Input
                       variant="faded"
                       label="Nome da fazenda"
+                      defaultValue={editData?.farmName}
                       endContent={<SquareUserRound size={16} />}
                       isRequired
                       errorMessage={errors.farmName?.message}
@@ -137,6 +149,7 @@ const ModalCreate = ({ open, onClose, createFarmer }: IModalCreateProps) => {
                     <Input
                       variant="faded"
                       label="Estado"
+                      defaultValue={editData?.state}
                       endContent={<Map size={16} />}
                       isRequired
                       errorMessage={errors.state?.message}
@@ -148,6 +161,7 @@ const ModalCreate = ({ open, onClose, createFarmer }: IModalCreateProps) => {
                     <Input
                       variant="faded"
                       label="Cidade"
+                      defaultValue={editData?.city}
                       endContent={<MapPin size={16} />}
                       isRequired
                       errorMessage={errors.city?.message}
@@ -161,6 +175,7 @@ const ModalCreate = ({ open, onClose, createFarmer }: IModalCreateProps) => {
                       type="number"
                       description="Em hectares"
                       isRequired
+                      defaultValue={editData?.totalArea.toString()}
                       errorMessage={errors.totalArea?.message}
                       endContent={<LandPlot size={16} />}
                       {...register('totalArea', {
@@ -174,6 +189,7 @@ const ModalCreate = ({ open, onClose, createFarmer }: IModalCreateProps) => {
                       type="number"
                       label="Area Agriculturável"
                       description="Em hectares"
+                      defaultValue={editData?.agriculturalArea.toString()}
                       endContent={<Shovel size={16} />}
                       errorMessage={errors.agriculturalArea?.message}
                       isRequired
@@ -187,6 +203,7 @@ const ModalCreate = ({ open, onClose, createFarmer }: IModalCreateProps) => {
                       type="number"
                       label="Area de Vegetação"
                       description="Em hectares"
+                      defaultValue={editData?.vegetationArea.toString()}
                       errorMessage={errors.vegetationArea?.message}
                       endContent={<TentTree size={16} />}
                       isRequired
@@ -199,10 +216,8 @@ const ModalCreate = ({ open, onClose, createFarmer }: IModalCreateProps) => {
                     label="Culturas plantadas"
                     color="default"
                     orientation="horizontal"
-                    value={getValues('plantedCrops')}
-                    onValueChange={(v) =>
-                      setValue('plantedCrops', v as Crops[])
-                    }
+                    value={crops}
+                    onValueChange={(v) => changeCrops(v as Crops[])}
                   >
                     <Checkbox value="soy">Soja</Checkbox>
                     <Checkbox value="corn">Milho</Checkbox>
@@ -228,4 +243,4 @@ const ModalCreate = ({ open, onClose, createFarmer }: IModalCreateProps) => {
   )
 }
 
-export default ModalCreate
+export default ModalEdit

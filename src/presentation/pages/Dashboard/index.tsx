@@ -1,6 +1,8 @@
 import { useFarmerContext } from '@/aplication/context/FarmContext'
 import { ICreateFarmer } from '@/domain/usecases/createFarmer'
+import { IDeleteFarmer } from '@/domain/usecases/deleteFarmer'
 import { IGetAllFarmer } from '@/domain/usecases/getAllFarmer'
+import { IUpdateFarmer } from '@/domain/usecases/updateFarmer'
 import CardChart from '@/presentation/components/CardChart'
 import FarmerTable from '@/presentation/components/FarmerTable'
 import Header from '@/presentation/components/Header'
@@ -11,9 +13,16 @@ import { useEffect } from 'react'
 interface IDashboard {
   getAll: IGetAllFarmer
   createFarmer: ICreateFarmer
+  updateFarmer: IUpdateFarmer
+  deleteFarmer: IDeleteFarmer
 }
 
-const Dashboard = ({ getAll, createFarmer }: IDashboard) => {
+const Dashboard = ({
+  getAll,
+  createFarmer,
+  updateFarmer,
+  deleteFarmer,
+}: IDashboard) => {
   const {
     cultureData,
     soilUseData,
@@ -76,7 +85,10 @@ const Dashboard = ({ getAll, createFarmer }: IDashboard) => {
           <Tab title="Fazendeiros">
             <Card className="bg-opacity-50">
               <CardBody>
-                <FarmerTable />
+                <FarmerTable
+                  updateFarmer={updateFarmer}
+                  deleteFarmer={deleteFarmer}
+                />
               </CardBody>
             </Card>
           </Tab>

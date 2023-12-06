@@ -8,7 +8,7 @@ export interface IData {
   value: number
 }
 
-interface IContext {
+export interface IContext {
   mock: IFarmer[]
   data: IFarmer[]
   totalFarm: number
